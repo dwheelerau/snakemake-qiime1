@@ -7,7 +7,11 @@ max_overlap: 200
 min_overlap: 20
 
 # slit libraries QC
-phred_threshold: 9
-bad_run: 5
-length_fraction: 0.7
-read_indicator: "extendedFrags" 
+#split_libraries_fastq:phred_quality_threshold 9
+#split_libraries_fastq:max_bad_run_length 5
+#split_libraries_fastq:min_per_read_length_fraction 0.70
+#split_libraries_fastq:barcode_type not-barcoded
+read_indicator: "extendedFrags"
+
+# reference db
+ref_db: /home/dwheeler/miniconda3/envs/qiime1/lib/python2.7/site-packages/qiime_default_reference/gg_13_8_otus/rep_set/97_otus.fasta
