@@ -68,3 +68,18 @@ rule flash_results:
         done;
         find logs/ -name *.stderr -type f -empty -delete;
         """
+
+rule quality_filter:
+    input:
+        expand("flash/{sample}.extendedFrags.fastq", sample=SAMPLES)
+    params:
+        phred=config['phred_threshold'],
+        bad_run=config['bad_run'],
+        fracn=config['length_fraction'],
+        indicator=config['read_indicator']
+    shell:
+        "multiple_split_libraries_fastq.py "
+        "--barcode_type not-barcoded --min_per_read_length_fraction {params.fracn} "
+        "--read_indicator {params.indicator} --max_bad_run_length {params.bad_run} "
+        "-i flash/ -o qiime/1_qc-fastqs/"
+
