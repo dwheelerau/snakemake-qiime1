@@ -3,7 +3,7 @@ pat_r1: "{sample}_L001_R1_001.fastq.gz"
 pat_r2: "{sample}_L001_R2_001.fastq.gz"
 
 # flash overlap settings
-max_overlap: 200
+max_overlap: 500
 min_overlap: 20
 
 # slit libraries QC
@@ -11,7 +11,7 @@ min_overlap: 20
 #split_libraries_fastq:max_bad_run_length 5
 #split_libraries_fastq:min_per_read_length_fraction 0.70
 #split_libraries_fastq:barcode_type not-barcoded
-read_indicator: "extendedFrags"
+read_indicator: "extendedFrags.fastq"
 
 # reference db
 ref_db: /home/dwheeler/miniconda3/envs/qiime1/lib/python2.7/site-packages/qiime_default_reference/gg_13_8_otus/rep_set/97_otus.fasta

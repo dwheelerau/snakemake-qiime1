@@ -24,7 +24,8 @@ rule all:
         expand('projectData/{sample}_L001_R1_001.fastq.gz', sample=SAMPLES),
         expand("flash/{sample}.extendedFrags.fastq", sample=SAMPLES),
         "flash_summary_results.txt",
-        "qiime/1_qc-fastqs/seqs.fna"
+        "qiime/1_qc-fastqs/seqs.fna",
+        "qiime/2_usearch61_ref_chimera_checking/chimeras.txt"
 
 rule clean:
     shell:
@@ -32,7 +33,7 @@ rule clean:
         rm -f logs/*
         rm -f flash/*
         rm -f *.txt
-        rm -f qiime/*
+        rm -rf qiime/
         """
 
 rule set_up:
@@ -80,16 +81,18 @@ rule quality_filter:
         "qiime/1_qc-fastqs/seqs.fna"
     shell:
         "multiple_split_libraries_fastq.py --read_indicator {params.indicator} "
-        "-i flash/ -o qiime/1_qc-fastqs/"
+        "-i flash/ -o qiime/1_qc-fastqs/ -p ./test.params"
 
 rule identify_chimera:
     input:
         "qiime/1_qc-fastqs/seqs.fna"
+    output:
+        "qiime/2_usearch61_ref_chimera_checking/chimeras.txt"
     params:
         ref_db=config['ref_db']
     shell:
         "identify_chimeric_seqs.py -m usearch61 -i {input} -r {params.ref_db} "
-        "-o ../qiime/2_usearch61_chimera_checking/"
+        "-o qiime/2_usearch61_ref_chimera_checking/"
 
 # -n is important, will remove chimeras and create a clean file
 rule filter_chimera:
@@ -101,86 +104,86 @@ rule filter_chimera:
     shell:
         "filter_fasta.py -f {input.fastas} -o {output} "
         "-s {input.chimeras} -n"
-
-!pick_open_reference_otus.py -i ../qiime/1_qc-fastqs/seqs_chimeras_filtered.fna -o ../qiime/2_chimfree_otu-pick-uclust-97pct-16sgg -p 16S_open_params_97per.txt
-
-### below is from old script, need to integreate above files into this pipeline
-# neeed to fix below to work
-rule summarize_table:
-    input:
-        "sample.otu_table_wTax.biom"
-    output:
-        "sample.otu_table_summary.txt"
-    shell:
-        """
-        biom summarize-table -i {input} -o {output}
-        cat {output}
-        echo
-        echo ' ~~~~~~ Caution! ~~~~~~ '
-        echo 'you need the above data to set the SAM_DEPTH (--sampling_depth)'
-        echo 'param in config for the core_diversity_analysis rule'
-        """
-# Align sequences command
-rule align_otus:
-    input:
-        "all.otus.fasta"
-    output:
-        "pynast_aligned_seqs/all.otus_aligned.fasta"
-    shell:
-        "align_seqs.py -i {input} -o pynast_aligned_seqs/"
-
-rule filter_aln:
-    input:
-        "pynast_aligned_seqs/all.otus_aligned.fasta"
-    output:
-        "pynast_aligned_seqs/all.otus_aligned_pfiltered.fasta"
-    shell:
-        "filter_alignment.py -o pynast_aligned_seqs/ -i {input}"
-
-rule make_phylogeny:
-    input:
-        "pynast_aligned_seqs/all.otus_aligned_pfiltered.fasta"
-    output:
-        "all.otus.tre"
-    shell:
-        "make_phylogeny.py -i {input} -o {output}"
-
-rule core_div_analysis:
-    input:
-        summary="sample.otu_table_summary.txt",
-        biom="sample.otu_table_wTax.biom",
-        meta=MAP_FILE,
-        tree="all.otus.tre"
-    output:
-        "coreout/"
-    params:
-        sample_depth=SAM_DEPTH
-    shell:
-        """
-        core_diversity_analyses.py -i {input.biom} -o tmpcore/ -m {input.meta} \
-        -t {input.tree} -e {params.sample_depth}
-        mv tmpcore/* {output}
-        rmdir tmpcore/
-        """
-
-onerror:
-        print("Biom error? Have you run qiime1 from the commmand line to activate it?")
-        #shell("mail -s "an error occurred" youremail@provider.com < {log}")
-
-rule clean:
-    shell:
-        """
-        rm -f tmp/*
-        rm -f logs/*
-        rm -f readStats/*
-        rm -f *.uc
-        rm -f *.fasta
-        rm -f *.fastq
-        rm -f all*
-        rm -f *.txt
-        rm -f *.stats
-        rm -f *.biom
-        rm -rf tax*
-        rm -rf pynast_aligned_seq/
-        rm -rf coreout/
-        """
+#
+#!pick_open_reference_otus.py -i ../qiime/1_qc-fastqs/seqs_chimeras_filtered.fna -o ../qiime/2_chimfree_otu-pick-uclust-97pct-16sgg -p 16S_open_params_97per.txt
+#
+#### below is from old script, need to integreate above files into this pipeline
+## neeed to fix below to work
+#rule summarize_table:
+#    input:
+#        "sample.otu_table_wTax.biom"
+#    output:
+#        "sample.otu_table_summary.txt"
+#    shell:
+#        """
+#        biom summarize-table -i {input} -o {output}
+#        cat {output}
+#        echo
+#        echo ' ~~~~~~ Caution! ~~~~~~ '
+#        echo 'you need the above data to set the SAM_DEPTH (--sampling_depth)'
+#        echo 'param in config for the core_diversity_analysis rule'
+#        """
+## Align sequences command
+#rule align_otus:
+#    input:
+#        "all.otus.fasta"
+#    output:
+#        "pynast_aligned_seqs/all.otus_aligned.fasta"
+#    shell:
+#        "align_seqs.py -i {input} -o pynast_aligned_seqs/"
+#
+#rule filter_aln:
+#    input:
+#        "pynast_aligned_seqs/all.otus_aligned.fasta"
+#    output:
+#        "pynast_aligned_seqs/all.otus_aligned_pfiltered.fasta"
+#    shell:
+#        "filter_alignment.py -o pynast_aligned_seqs/ -i {input}"
+#
+#rule make_phylogeny:
+#    input:
+#        "pynast_aligned_seqs/all.otus_aligned_pfiltered.fasta"
+#    output:
+#        "all.otus.tre"
+#    shell:
+#        "make_phylogeny.py -i {input} -o {output}"
+#
+#rule core_div_analysis:
+#    input:
+#        summary="sample.otu_table_summary.txt",
+#        biom="sample.otu_table_wTax.biom",
+#        meta=MAP_FILE,
+#        tree="all.otus.tre"
+#    output:
+#        "coreout/"
+#    params:
+#        sample_depth=SAM_DEPTH
+#    shell:
+#        """
+#        core_diversity_analyses.py -i {input.biom} -o tmpcore/ -m {input.meta} \
+#        -t {input.tree} -e {params.sample_depth}
+#        mv tmpcore/* {output}
+#        rmdir tmpcore/
+#        """
+#
+#onerror:
+#        print("Biom error? Have you run qiime1 from the commmand line to activate it?")
+#        #shell("mail -s "an error occurred" youremail@provider.com < {log}")
+#
+#rule clean:
+#    shell:
+#        """
+#        rm -f tmp/*
+#        rm -f logs/*
+#        rm -f readStats/*
+#        rm -f *.uc
+#        rm -f *.fasta
+#        rm -f *.fastq
+#        rm -f all*
+#        rm -f *.txt
+#        rm -f *.stats
+#        rm -f *.biom
+#        rm -rf tax*
+#        rm -rf pynast_aligned_seq/
+#        rm -rf coreout/
+#        """
